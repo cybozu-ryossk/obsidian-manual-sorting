@@ -11,19 +11,6 @@ export class SettingsTab extends PluginSettingTab {
 		this.containerEl.empty()
 
 		new Setting(this.containerEl)
-			.setName('New item placement')
-			.setDesc('Default new item placement.')
-			.addDropdown(dropdown => dropdown
-				.addOption('top', 'Top')
-				.addOption('bottom', 'Bottom')
-				.setValue(this.plugin.settings.newItemPlacement)
-				.onChange(async value => {
-					this.plugin.settings.newItemPlacement = value as 'top' | 'bottom'
-					await this.plugin.saveSettings()
-				}),
-			)
-
-		new Setting(this.containerEl)
 			.setName('Debug Mode')
 			.setDesc('Show debug logs in the console.')
 			.addToggle(toggle => toggle

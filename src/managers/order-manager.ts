@@ -1,4 +1,4 @@
-import { TAbstractFile, TFolder } from 'obsidian'
+import { TFolder } from 'obsidian'
 import { Logger } from '@/utils'
 import type ManualSortingPlugin from '@/plugin'
 import type { FileOrder } from '@/types'
@@ -8,27 +8,14 @@ export class OrderManager {
 
 	constructor(private plugin: ManualSortingPlugin) {}
 
-	add(item: TAbstractFile) {
-		const path = item.path
-		this.log.info(`Inserting new item: '${path}'`)
-		const order = this.plugin.settings.customOrder
-		const dir = path.substring(0, path.lastIndexOf('/')) || '/'
-		const isFolder = item instanceof TFolder
-		const insertPos = this.plugin.settings.newItemPlacement
-
-		if (isFolder) order[path] = { children: [], sortOrder: 'custom' }
-		if (insertPos === 'top') order[dir].children.unshift(path)
-		else order[dir].children.push(path)
-
-		this.logOrder('Updated order after adding new item:')
-	}
-
 	rename(oldPath: string, newPath: string) {
 		this.log.info(`Renaming '${oldPath}' to '${newPath}'`)
 		const order = this.plugin.settings.customOrder
 		const oldDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/'
 
-		order[oldDir].children = order[oldDir].children.map((path: string) => (path === oldPath ? newPath : path))
+		if (order[oldDir]) {
+			order[oldDir].children = order[oldDir].children.map((path: string) => (path === oldPath ? newPath : path))
+		}
 		const isFolder = oldPath in order
 		if (isFolder) this.renameFolder(oldPath, newPath)
 
@@ -44,7 +31,13 @@ export class OrderManager {
 		const isFolder = oldPath in order
 		const isDirChanged = oldDir !== newDir
 
-		order[oldDir].children = order[oldDir].children.filter(path => path !== oldPath)
+		if (order[oldDir]) {
+			order[oldDir].children = order[oldDir].children.filter(path => path !== oldPath)
+		}
+
+		if (!order[newDir]) {
+			order[newDir] = { children: [], sortOrder: 'custom' }
+		}
 
 		let insertIdx = 0
 		if (targetSiblingPath) {
@@ -68,7 +61,9 @@ export class OrderManager {
 		const dir = path.substring(0, path.lastIndexOf('/')) || '/'
 		const isFolder = path in order
 
-		order[dir].children = order[dir].children.filter(p => p !== path)
+		if (order[dir]) {
+			order[dir].children = order[dir].children.filter(p => p !== path)
+		}
 		if (isFolder) delete order[path]
 
 		this.logOrder('Updated order after removing item:')
@@ -113,23 +108,14 @@ export class OrderManager {
 	private matchSavedOrder(currentOrder: FileOrder, savedOrder: FileOrder) {
 		const result: FileOrder = {}
 
-		for (const folder in currentOrder) {
-			if (folder in savedOrder) {
-				const prevOrder = savedOrder[folder]
-				const currentFiles = currentOrder[folder]
-				// Leave the files that have already been saved
-				const existingFiles = prevOrder.children.filter(file => currentFiles.children.includes(file))
-				// Add new files to the beginning of the list
-				const newFiles = currentFiles.children.filter(file => !prevOrder.children.includes(file))
-				// Combine and remove duplicates
-				if (this.plugin.settings.newItemPlacement === 'top') {
-					result[folder] = { children: Array.from(new Set([...newFiles, ...existingFiles])), sortOrder: 'custom' }
-				} else {
-					result[folder] = { children: Array.from(new Set([...existingFiles, ...newFiles])), sortOrder: 'custom' }
-				}
-			} else {
-				// Remove duplicates from current folder
-				result[folder] = { children: Array.from(new Set(currentOrder[folder].children)), sortOrder: 'custom' }
+		for (const folder in savedOrder) {
+			if (!(folder in currentOrder)) continue
+			const prevOrder = savedOrder[folder]
+			const currentFiles = currentOrder[folder]
+			// Keep only files that still exist; don't add new files to custom order
+			const existingFiles = prevOrder.children.filter(file => currentFiles.children.includes(file))
+			if (existingFiles.length > 0) {
+				result[folder] = { children: existingFiles, sortOrder: 'custom' }
 			}
 		}
 

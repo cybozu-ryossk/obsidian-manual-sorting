@@ -38,6 +38,13 @@
 - **Using the [BRAT plugin](github.com/TfTHacker/obsidian42-brat)**: `Add Beta Plugin` → `kh4f/manual-sorting`
 - **Manually**: extract the [latest release](https://github.com/kh4f/manual-sorting/releases/latest) `manual-sorting-x.y.z.zip` into `vault/.obsidian/plugins/manual-sorting/`
 
+## 📋 Specifications
+
+- When Manual Sorting is active, items explicitly placed via drag-and-drop are sorted by their custom order.
+- Items **not** in the custom order (new files/folders) are displayed in Obsidian's standard sort order, appended after the manually sorted items.
+- New files and folders are **not** automatically added to the custom order; they appear via standard sort until manually placed by drag-and-drop.
+- The "New item placement" setting (Top/Bottom) is removed. Unsorted items always appear after manually sorted items, in standard sort order.
+
 ## 💖 Credits
 - **Inspiration**: [Obsidian Bartender](https://github.com/nothingislost/obsidian-bartender), [Custom File Explorer sorting](https://github.com/SebastianMC/obsidian-custom-sort)
 - **Huge thanks** to [@Zweikeks](https://github.com/Zweikeks), [@Azmoinal](https://github.com/Azmoinal), [@SublimePeace](https://github.com/SublimePeace), [@Anonym0usPlayer](https://github.com/Anonym0usPlayer) for testing and feedback!

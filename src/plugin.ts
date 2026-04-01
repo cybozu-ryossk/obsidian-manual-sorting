@@ -48,11 +48,6 @@ export default class ManualSortingPlugin extends Plugin {
 			this.orderManager.rename(oldPath, item.path)
 		})
 
-		this.app.vault.on('create', (item: TAbstractFile) => {
-			this.log.info(`Item created: '${item.path}'`)
-			this.orderManager.add(item)
-		})
-
 		this.app.vault.on('delete', (item: TAbstractFile) => {
 			this.log.info(`Item deleted: '${item.path}'`)
 			this.orderManager.remove(item.path)

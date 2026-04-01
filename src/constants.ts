@@ -6,5 +6,4 @@ export const DEFAULT_SETTINGS: PluginSettings = {
 	customOrder: { '/': { children: [], sortOrder: 'custom' } },
 	sortOrder: 'custom',
 	debugMode: !!process.env.DEV,
-	newItemPlacement: 'top',
 }

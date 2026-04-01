@@ -11,14 +11,12 @@ export interface LegacyPluginSettings {
 	customOrder: Record<string, string[]>
 	sortOrder: string
 	debugMode: boolean
-	newItemPlacement: 'top' | 'bottom'
 }
 
 export interface PluginSettings {
 	customOrder: FileOrder
 	sortOrder: SortOrder
 	debugMode: boolean
-	newItemPlacement: 'top' | 'bottom'
 }
 
 export type FileOrder = Record<string, {

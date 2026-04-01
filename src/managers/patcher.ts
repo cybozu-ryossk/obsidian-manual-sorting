@@ -25,7 +25,10 @@ export class Patcher {
 				const folderPath = folder.path
 				if (!(folderPath in plugin.settings.customOrder)) return sortedItems
 				const customOrder = plugin.settings.customOrder[folderPath].children
-				return sortedItems.sort((a, b) => customOrder.indexOf(a.file.path) - customOrder.indexOf(b.file.path))
+				const inOrder = sortedItems.filter(item => customOrder.includes(item.file.path))
+				const notInOrder = sortedItems.filter(item => !customOrder.includes(item.file.path))
+				inOrder.sort((a, b) => customOrder.indexOf(a.file.path) - customOrder.indexOf(b.file.path))
+				return [...inOrder, ...notInOrder]
 			},
 			setSortOrder: original => function (this: FileExplorerView, sortOrder: FileExplorerViewSortOrder) {
 				original.call(this, sortOrder)
