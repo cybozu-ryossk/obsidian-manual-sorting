@@ -36,23 +36,60 @@ export default class ManualSortingPlugin extends Plugin {
 
 	registerVaultHandlers() {
 		this.app.vault.on('rename', (item: TAbstractFile, oldPath: string) => {
-			if (!(item instanceof TFolder)) return
-			const orders = this.settings.folderSortOrders
-			if (!(oldPath in orders)) return
-			this.log.info(`Folder renamed from '${oldPath}' to '${item.path}'`)
-			orders[item.path] = orders[oldPath]
-			delete orders[oldPath]
+			const oldDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/'
+			const newDir = item.path.substring(0, item.path.lastIndexOf('/')) || '/'
+
+			if (item instanceof TFolder) {
+				this.log.info(`Folder renamed from '${oldPath}' to '${item.path}'`)
+				this.updateOrderForFolderRename(oldPath, item.path)
+			} else {
+				if (oldDir === newDir && this.settings.customOrder[oldDir]) {
+					this.log.info(`File renamed from '${oldPath}' to '${item.path}'`)
+					this.settings.customOrder[oldDir] = this.settings.customOrder[oldDir]
+						.map(p => (p === oldPath ? item.path : p))
+				} else if (this.settings.customOrder[oldDir]) {
+					this.settings.customOrder[oldDir] = this.settings.customOrder[oldDir]
+						.filter(p => p !== oldPath)
+					if (this.settings.customOrder[oldDir].length === 0)
+						delete this.settings.customOrder[oldDir]
+				}
+			}
 			void this.saveSettings()
 		})
 
 		this.app.vault.on('delete', (item: TAbstractFile) => {
-			if (!(item instanceof TFolder)) return
-			const orders = this.settings.folderSortOrders
-			if (!(item.path in orders)) return
-			this.log.info(`Folder deleted: '${item.path}'`)
-			delete orders[item.path]
+			this.log.info(`Item deleted: '${item.path}'`)
+			const dir = item.path.substring(0, item.path.lastIndexOf('/')) || '/'
+			const orders = this.settings.customOrder
+
+			if (orders[dir]) {
+				orders[dir] = orders[dir].filter(p => p !== item.path)
+				if (orders[dir].length === 0) delete orders[dir]
+			}
+
+			if (item instanceof TFolder) {
+				for (const key of Object.keys(orders)) {
+					if (key === item.path || key.startsWith(item.path + '/'))
+						delete orders[key]
+				}
+			}
 			void this.saveSettings()
 		})
+	}
+
+	private updateOrderForFolderRename(oldPrefix: string, newPrefix: string) {
+		const updated: Record<string, string[]> = {}
+		for (const [key, children] of Object.entries(this.settings.customOrder)) {
+			const newKey = key === oldPrefix ? newPrefix
+				: key.startsWith(oldPrefix + '/') ? newPrefix + key.slice(oldPrefix.length)
+				: key
+			updated[newKey] = children.map(p =>
+				p === oldPrefix ? newPrefix
+				: p.startsWith(oldPrefix + '/') ? newPrefix + p.slice(oldPrefix.length)
+				: p,
+			)
+		}
+		this.settings.customOrder = updated
 	}
 
 	async loadSettings() {

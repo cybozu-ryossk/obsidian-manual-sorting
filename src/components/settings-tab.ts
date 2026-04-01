@@ -1,11 +1,9 @@
-import { App, PluginSettingTab, Setting } from 'obsidian'
+import { App, PluginSettingTab, Setting, TFolder } from 'obsidian'
 import { Logger } from '@/utils'
-import { SORT_ORDER_LABELS } from '@/constants'
 import type ManualSortingPlugin from '@/plugin'
-import type { FileExplorerViewSortOrder } from 'obsidian-typings'
 
 export class SettingsTab extends PluginSettingTab {
-	private selectedFolderPath: string | null = null
+	private selectedFolderPath = '/'
 
 	constructor(app: App, public plugin: ManualSortingPlugin) {
 		super(app, plugin)
@@ -26,125 +24,149 @@ export class SettingsTab extends PluginSettingTab {
 				}),
 			)
 
-		this.containerEl.createEl('h3', { text: 'Per-Folder Sort Orders' })
+		this.containerEl.createEl('h3', { text: 'Manual Item Order' })
 		this.containerEl.createEl('p', {
-			text: "Configure a sort order for specific folders. Folders without a setting use Obsidian's global sort order.",
+			text: "Select a folder to configure the order of its contents. Folders without a custom order use Obsidian's global sort order.",
 			cls: 'setting-item-description',
 		})
 
-		const folderSortOrders = this.plugin.settings.folderSortOrders
-		const configuredFolders = Object.keys(folderSortOrders).sort()
+		const allFolderPaths = this.app.vault.getAllFolders(true).map(f => f.path).sort()
 
-		if (this.selectedFolderPath !== null && !configuredFolders.includes(this.selectedFolderPath)) {
-			this.selectedFolderPath = null
+		// Ensure selectedFolderPath is still valid
+		if (!allFolderPaths.includes(this.selectedFolderPath)) {
+			this.selectedFolderPath = '/'
 		}
-
-		if (configuredFolders.length === 0) {
-			this.containerEl.createEl('p', {
-				text: 'No per-folder sort orders configured yet.',
-				cls: 'setting-item-description',
-			})
-		}
-
-		for (const folderPath of configuredFolders) {
-			const isSelected = folderPath === this.selectedFolderPath
-			const wrapperEl = this.containerEl.createDiv('ms-folder-entry-wrapper')
-
-			const entry = new Setting(wrapperEl)
-				.setName(folderPath === '/' ? '/ (root)' : folderPath)
-				.addExtraButton(btn => {
-					btn.setIcon(isSelected ? 'chevron-down' : 'chevron-right')
-						.setTooltip(isSelected ? 'Collapse' : 'Expand')
-						.onClick(() => {
-							this.selectedFolderPath = isSelected ? null : folderPath
-							this.display()
-						})
-				})
-
-			entry.nameEl.style.cursor = 'pointer'
-			entry.nameEl.addEventListener('click', () => {
-				this.selectedFolderPath = isSelected ? null : folderPath
-				this.display()
-			})
-
-			if (isSelected) {
-				this.renderFolderSections(folderPath, wrapperEl)
-			}
-		}
-
-		this.containerEl.createEl('h4', { text: 'Add folder sort order' })
-		this.renderAddSection()
-	}
-
-	private renderFolderSections(folderPath: string, container: HTMLElement): void {
-		const folderSortOrders = this.plugin.settings.folderSortOrders
-		const sectionsEl = container.createDiv('ms-folder-sections')
-
-		sectionsEl.createEl('h4', { text: 'Sort Order', cls: 'ms-section-heading' })
-
-		new Setting(sectionsEl)
-			.addDropdown(drop => {
-				for (const [value, label] of Object.entries(SORT_ORDER_LABELS)) {
-					drop.addOption(value, label)
-				}
-				drop.setValue(folderSortOrders[folderPath])
-				drop.onChange(async (value) => {
-					folderSortOrders[folderPath] = value as FileExplorerViewSortOrder
-					await this.plugin.saveSettings()
-					this.plugin.getFileExplorerView().sort()
-				})
-			})
-			.addButton(btn => btn
-				.setIcon('trash-2')
-				.setTooltip('Remove this folder sort order')
-				.setWarning()
-				.onClick(async () => {
-					delete folderSortOrders[folderPath]
-					this.selectedFolderPath = null
-					await this.plugin.saveSettings()
-					this.plugin.getFileExplorerView().sort()
-					this.display()
-				}),
-			)
-	}
-
-	private renderAddSection(): void {
-		let selectedFolderPath = '/'
-		let selectedSortOrder: FileExplorerViewSortOrder = 'alphabetical'
-
-		const allFolders = this.app.vault.getAllFolders(true)
-			.map(f => f.path)
-			.sort()
 
 		new Setting(this.containerEl)
 			.setName('Folder')
 			.addDropdown(drop => {
-				for (const path of allFolders) {
+				for (const path of allFolderPaths) {
 					drop.addOption(path, path === '/' ? '/ (root)' : path)
 				}
-				drop.setValue(selectedFolderPath)
-				drop.onChange(value => { selectedFolderPath = value })
+				drop.setValue(this.selectedFolderPath)
+				drop.onChange(value => {
+					this.selectedFolderPath = value
+					this.display()
+				})
 			})
 
-		new Setting(this.containerEl)
-			.setName('Sort order')
-			.addDropdown(drop => {
-				for (const [value, label] of Object.entries(SORT_ORDER_LABELS)) {
-					drop.addOption(value, label)
-				}
-				drop.setValue(selectedSortOrder)
-				drop.onChange(value => { selectedSortOrder = value as FileExplorerViewSortOrder })
+		this.renderFolderPanel()
+	}
+
+	private renderFolderPanel(): void {
+		const folderPath = this.selectedFolderPath
+		const folder = folderPath === '/'
+			? this.app.vault.getRoot()
+			: this.app.vault.getAbstractFileByPath(folderPath)
+
+		if (!(folder instanceof TFolder)) return
+
+		const customOrder: string[] = this.plugin.settings.customOrder[folderPath] ?? []
+		const allChildren = folder.children
+
+		const orderedItems = customOrder
+			.map(p => allChildren.find(c => c.path === p))
+			.filter(c => !!c)
+
+		const unorderedItems = allChildren
+			.filter(c => !customOrder.includes(c.path))
+			.sort((a, b) => a.name.localeCompare(b.name))
+
+		// --- Custom Order section ---
+		this.containerEl.createEl('h4', { text: 'Custom Order' })
+
+		if (orderedItems.length === 0) {
+			this.containerEl.createEl('p', {
+				text: 'No items in the custom order for this folder. Add items from the list below.',
+				cls: 'setting-item-description',
 			})
-			.addButton(btn => btn
-				.setButtonText('Add')
-				.setCta()
-				.onClick(async () => {
-					this.plugin.settings.folderSortOrders[selectedFolderPath] = selectedSortOrder
-					this.selectedFolderPath = selectedFolderPath
-					await this.plugin.saveSettings()
-					this.plugin.getFileExplorerView().sort()
-					this.display()
-				}),
-			)
+		}
+
+		for (let i = 0; i < orderedItems.length; i++) {
+			const item = orderedItems[i]
+			const isFolder = item instanceof TFolder
+
+			new Setting(this.containerEl)
+				.setName(item.name)
+				.setDesc(isFolder ? '📁' : '📄')
+				.addExtraButton(btn => btn
+					.setIcon('arrow-up')
+					.setTooltip('Move up')
+					.setDisabled(i === 0)
+					.onClick(async () => {
+						const order = this.plugin.settings.customOrder[folderPath]
+						;[order[i - 1], order[i]] = [order[i], order[i - 1]]
+						await this.plugin.saveSettings()
+						this.plugin.getFileExplorerView().sort()
+						this.display()
+					}),
+				)
+				.addExtraButton(btn => btn
+					.setIcon('arrow-down')
+					.setTooltip('Move down')
+					.setDisabled(i === orderedItems.length - 1)
+					.onClick(async () => {
+						const order = this.plugin.settings.customOrder[folderPath]
+						;[order[i], order[i + 1]] = [order[i + 1], order[i]]
+						await this.plugin.saveSettings()
+						this.plugin.getFileExplorerView().sort()
+						this.display()
+					}),
+				)
+				.addExtraButton(btn => btn
+					.setIcon('x')
+					.setTooltip('Remove from custom order')
+					.onClick(async () => {
+						this.plugin.settings.customOrder[folderPath] =
+							this.plugin.settings.customOrder[folderPath].filter(p => p !== item.path)
+						if (this.plugin.settings.customOrder[folderPath].length === 0)
+							delete this.plugin.settings.customOrder[folderPath]
+						await this.plugin.saveSettings()
+						this.plugin.getFileExplorerView().sort()
+						this.display()
+					}),
+				)
+		}
+
+		if (orderedItems.length > 0) {
+			new Setting(this.containerEl)
+				.addButton(btn => btn
+					.setButtonText('Reset order')
+					.setWarning()
+					.onClick(async () => {
+						delete this.plugin.settings.customOrder[folderPath]
+						await this.plugin.saveSettings()
+						this.plugin.getFileExplorerView().sort()
+						this.display()
+					}),
+				)
+		}
+
+		// --- Unordered Items section ---
+		if (unorderedItems.length > 0) {
+			this.containerEl.createEl('h4', { text: 'Unordered Items' })
+			this.containerEl.createEl('p', {
+				text: "Items not yet in the custom order. They appear after ordered items using Obsidian's global sort.",
+				cls: 'setting-item-description',
+			})
+
+			for (const item of unorderedItems) {
+				const isFolder = item instanceof TFolder
+				new Setting(this.containerEl)
+					.setName(item.name)
+					.setDesc(isFolder ? '📁' : '📄')
+					.addButton(btn => btn
+						.setButtonText('Add')
+						.onClick(async () => {
+							if (!this.plugin.settings.customOrder[folderPath])
+								this.plugin.settings.customOrder[folderPath] = []
+							this.plugin.settings.customOrder[folderPath].push(item.path)
+							await this.plugin.saveSettings()
+							this.plugin.getFileExplorerView().sort()
+							this.display()
+						}),
+					)
+			}
+		}
 	}
 }

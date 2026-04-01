@@ -1,5 +1,5 @@
 import { TFolder } from 'obsidian'
-import type { FileTreeItem, FileExplorerViewSortOrder } from 'obsidian-typings'
+import type { FileTreeItem } from 'obsidian-typings'
 import type { i18n } from 'i18next'
 
 declare global {
@@ -7,7 +7,7 @@ declare global {
 }
 
 export interface PluginSettings {
-	folderSortOrders: Record<string, FileExplorerViewSortOrder>
+	customOrder: Record<string, string[]>
 	debugMode: boolean
 }
 

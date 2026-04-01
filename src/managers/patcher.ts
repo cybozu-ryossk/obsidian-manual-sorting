@@ -1,9 +1,8 @@
-import { TFile, TFolder } from 'obsidian'
+import { TFolder } from 'obsidian'
 import { around } from 'monkey-around'
 import { Logger } from '@/utils'
 import type ManualSortingPlugin from '@/plugin'
 import type { FileTreeItem, FileExplorerView } from 'obsidian-typings'
-import type { FileExplorerViewSortOrder } from 'obsidian-typings'
 
 export class Patcher {
 	private explorerUninstaller: ReturnType<typeof around> | null = null
@@ -20,44 +19,15 @@ export class Patcher {
 			getSortedFolderItems: original => function (this: FileExplorerView, folder: TFolder, bypass?: boolean): FileTreeItem[] {
 				const sortedItems = original.call(this, folder)
 				if (bypass) return sortedItems
-				const customSortOrder = plugin.settings.folderSortOrders[folder.path]
-				if (!customSortOrder) return sortedItems
-				patcher.log.info(`Applying custom sort '${customSortOrder}' to folder '${folder.path}'`)
-				return patcher.sortItems(sortedItems, customSortOrder)
+				const folderPath = folder.path
+				const customOrder = plugin.settings.customOrder[folderPath]
+				if (!customOrder || customOrder.length === 0) return sortedItems
+				const inOrder = sortedItems.filter(item => customOrder.includes(item.file.path))
+				const notInOrder = sortedItems.filter(item => !customOrder.includes(item.file.path))
+				inOrder.sort((a, b) => customOrder.indexOf(a.file.path) - customOrder.indexOf(b.file.path))
+				patcher.log.info(`Applied custom order to folder '${folderPath}'`)
+				return [...inOrder, ...notInOrder]
 			},
-		})
-	}
-
-	private sortItems(items: FileTreeItem[], sortOrder: FileExplorerViewSortOrder): FileTreeItem[] {
-		return [...items].sort((a, b) => {
-			switch (sortOrder) {
-				case 'alphabetical':
-					return a.file.name.localeCompare(b.file.name)
-				case 'alphabeticalReverse':
-					return b.file.name.localeCompare(a.file.name)
-				case 'byModifiedTime': {
-					const aTime = a.file instanceof TFile ? a.file.stat.mtime : 0
-					const bTime = b.file instanceof TFile ? b.file.stat.mtime : 0
-					return bTime - aTime || a.file.name.localeCompare(b.file.name)
-				}
-				case 'byModifiedTimeReverse': {
-					const aTime = a.file instanceof TFile ? a.file.stat.mtime : 0
-					const bTime = b.file instanceof TFile ? b.file.stat.mtime : 0
-					return aTime - bTime || a.file.name.localeCompare(b.file.name)
-				}
-				case 'byCreatedTime': {
-					const aTime = a.file instanceof TFile ? a.file.stat.ctime : 0
-					const bTime = b.file instanceof TFile ? b.file.stat.ctime : 0
-					return bTime - aTime || a.file.name.localeCompare(b.file.name)
-				}
-				case 'byCreatedTimeReverse': {
-					const aTime = a.file instanceof TFile ? a.file.stat.ctime : 0
-					const bTime = b.file instanceof TFile ? b.file.stat.ctime : 0
-					return aTime - bTime || a.file.name.localeCompare(b.file.name)
-				}
-				default:
-					return 0
-			}
 		})
 	}
 

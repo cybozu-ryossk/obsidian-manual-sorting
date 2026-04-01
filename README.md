@@ -23,15 +23,15 @@
 
 ## 🔥 Features
 
-- **Configure per-folder sort order** from the plugin settings screen
-- **Folders without a setting** use Obsidian's global sort order
-- **Seamlessly switch** between per-folder and global sort modes
+- **Configure item order per folder** from the plugin settings screen
+- **Reorder files and folders** using up/down buttons — no drag-and-drop needed
+- **Folders without a custom order** use Obsidian's global sort order
 
 ## 🕹️ Usage
 
 1. Open `Settings` → `Manual Sorting`
-2. Under "Per-Folder Sort Orders", click `Add`
-3. Enter a folder path and choose the desired sort order
+2. Select a folder from the dropdown
+3. Use the up/down buttons to reorder items within that folder
 
 ## 📥 Installation
 - **Via the Obsidian Plugins marketplace**: https://obsidian.md/plugins?id=manual-sorting
@@ -40,18 +40,17 @@
 
 ## 📋 Specifications
 
-- Drag-and-drop sorting is removed. Sort order is configured exclusively from the plugin settings screen.
-- Users can assign a sort order to any folder individually (e.g. alphabetical, by modified time).
-- Folders with no configured sort order fall back to Obsidian's global sort order.
-- The "Change sort order" menu in the file explorer is unmodified; it still controls the global sort order.
-- The settings tab shows a list of all per-folder sort order configurations.
-- Each configured folder has a sort order dropdown and a delete button to revert to the global sort order.
-- A new configuration can be added by entering a folder path and selecting a sort order.
-- When a folder is renamed, its sort order configuration is updated automatically.
-- When a folder is deleted, its sort order configuration is removed automatically.
-- The settings screen is reorganized with a folder-first approach: a folder is selected at the top, and the selected folder's configuration is displayed below in sections.
-- Existing per-folder sort order entries are shown as a list; clicking on an entry selects it and displays its settings in sections.
-- The "Add" flow shows a folder dropdown first, and after adding, switches to show that folder's sections.
+- Drag-and-drop sorting is removed. Item order is configured exclusively from the plugin settings screen.
+- The settings tab has a folder selector dropdown at the top. Selecting a folder loads the item order panel for that folder.
+- The item order panel shows all files and subfolders currently inside the selected folder, in their current custom order.
+- Items in the custom order are listed with up/down buttons to move them and a remove button to drop them from the custom order.
+- Items not yet in the custom order appear below the ordered list as "unordered items" and can be individually added to the bottom of the custom order.
+- There is also a "Reset order" button that clears the entire custom order for the selected folder.
+- When a folder has a custom order, the file explorer displays its items in that order; items not in the custom order are appended after the ordered items using Obsidian's global sort order.
+- Folders without any custom order fall back entirely to Obsidian's global sort order.
+- The "Change sort order" menu in the file explorer is unmodified; it still controls the global sort order for unconfigured folders.
+- When a file or folder is renamed within the same parent, its entry in the custom order is updated automatically.
+- When a file or folder is deleted, its entry is removed from the custom order automatically.
 
 ## 💖 Credits
 - **Inspiration**: [Obsidian Bartender](https://github.com/nothingislost/obsidian-bartender), [Custom File Explorer sorting](https://github.com/SebastianMC/obsidian-custom-sort)
