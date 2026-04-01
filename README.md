@@ -49,6 +49,9 @@
 - A new configuration can be added by entering a folder path and selecting a sort order.
 - When a folder is renamed, its sort order configuration is updated automatically.
 - When a folder is deleted, its sort order configuration is removed automatically.
+- The settings screen is reorganized with a folder-first approach: a folder is selected at the top, and the selected folder's configuration is displayed below in sections.
+- Existing per-folder sort order entries are shown as a list; clicking on an entry selects it and displays its settings in sections.
+- The "Add" flow shows a folder dropdown first, and after adding, switches to show that folder's sections.
 
 ## 💖 Credits
 - **Inspiration**: [Obsidian Bartender](https://github.com/nothingislost/obsidian-bartender), [Custom File Explorer sorting](https://github.com/SebastianMC/obsidian-custom-sort)

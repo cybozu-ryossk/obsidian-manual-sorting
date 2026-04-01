@@ -65,6 +65,27 @@
 	to { background-position: 8px 0; }
 }
 
+.ms-folder-sections {
+	margin-left: 1em;
+	padding: 0.25em 0 0.5em 1em;
+	border-left: 2px solid var(--background-modifier-border);
+	margin-bottom: 0.25em;
+}
+
+.ms-section-heading {
+	margin: 0.5em 0 0;
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.ms-folder-sections .setting-item {
+	border-top: none;
+	padding-top: 0.25em;
+}
+
 .menu-item[data-section="custom"] {
 	.menu-item-icon:first-child { display: flex; }
 
