@@ -25,6 +25,18 @@ export class SettingsTab extends PluginSettingTab {
 				}),
 			)
 
+		new Setting(this.containerEl)
+			.setName('Show dot files/folders')
+			.setDesc('When disabled, files and folders whose name starts with "." are hidden from the file explorer.')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showDotItems)
+				.onChange(async value => {
+					this.plugin.settings.showDotItems = value
+					await this.plugin.saveSettings()
+					this.plugin.getFileExplorerView().sort()
+				}),
+			)
+
 		this.containerEl.createEl('h3', { text: 'Manual Item Order' })
 		this.containerEl.createEl('p', {
 			text: "Select a folder to configure the order of its contents. Folders without a custom order use Obsidian's global sort order.",

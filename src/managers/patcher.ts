@@ -20,10 +20,12 @@ export class Patcher {
 				const sortedItems = original.call(this, folder)
 				if (bypass) return sortedItems
 				const folderPath = folder.path
-				const hiddenFolders = plugin.settings.hiddenFolders
-				const visibleItems = hiddenFolders.length > 0
-					? sortedItems.filter(item => !hiddenFolders.includes(item.file.path))
-					: sortedItems
+				const { hiddenFolders, showDotItems } = plugin.settings
+				let visibleItems = sortedItems
+				if (!showDotItems)
+					visibleItems = visibleItems.filter(item => !item.file.name.startsWith('.'))
+				if (hiddenFolders.length > 0)
+					visibleItems = visibleItems.filter(item => !hiddenFolders.includes(item.file.path))
 				const customOrder = plugin.settings.customOrder[folderPath]
 				if (!customOrder || customOrder.length === 0) return visibleItems
 				const inOrder = visibleItems.filter(item => customOrder.includes(item.file.path))
