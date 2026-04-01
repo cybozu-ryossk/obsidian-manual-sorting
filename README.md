@@ -44,6 +44,8 @@
 - Items **not** in the custom order (new files/folders) are displayed in Obsidian's standard sort order, appended after the manually sorted items.
 - New files and folders are **not** automatically added to the custom order; they appear via standard sort until manually placed by drag-and-drop.
 - The "New item placement" setting (Top/Bottom) is removed. Unsorted items always appear after manually sorted items, in standard sort order.
+- The settings tab displays all manually sorted items grouped by folder, so users can review which items have a custom order.
+- Each item in the list has a delete button to remove it from the custom order (reverting it to standard sort behavior). Removing all items in a folder removes the folder entry entirely.
 
 ## 💖 Credits
 - **Inspiration**: [Obsidian Bartender](https://github.com/nothingislost/obsidian-bartender), [Custom File Explorer sorting](https://github.com/SebastianMC/obsidian-custom-sort)
