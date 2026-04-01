@@ -15,7 +15,7 @@ export default defineConfig({
 	},
 	sourcemap: !isProd,
 	format: 'cjs',
-	outDir: '.',
+	outDir: 'dist',
 	clean: false,
 	deps: { onlyAllowBundle: 'monkey-around', neverBundle: 'obsidian' },
 	env: { DEV: !isProd },

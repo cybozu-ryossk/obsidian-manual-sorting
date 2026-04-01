@@ -1,14 +1,12 @@
-import { Menu, MenuItem, TFolder } from 'obsidian'
+import { TFile, TFolder } from 'obsidian'
 import { around } from 'monkey-around'
 import { Logger } from '@/utils'
-import { ResetOrderModal } from '@/components'
-import { CUSTOM_SORT_ORDER_ID } from '@/constants'
 import type ManualSortingPlugin from '@/plugin'
-import type { FileTreeItem, FileExplorerView, FileExplorerViewSortOrder } from 'obsidian-typings'
+import type { FileTreeItem, FileExplorerView } from 'obsidian-typings'
+import type { FileExplorerViewSortOrder } from 'obsidian-typings'
 
 export class Patcher {
 	private explorerUninstaller: ReturnType<typeof around> | null = null
-	private menuUninstaller: ReturnType<typeof around> | null = null
 	private log = new Logger('PATCHER', '#988bff')
 
 	constructor(private plugin: ManualSortingPlugin) {}
@@ -21,79 +19,45 @@ export class Patcher {
 		this.explorerUninstaller = around(Object.getPrototypeOf(fileExplorerView) as FileExplorerView, {
 			getSortedFolderItems: original => function (this: FileExplorerView, folder: TFolder, bypass?: boolean): FileTreeItem[] {
 				const sortedItems = original.call(this, folder)
-				if (bypass || !plugin.isCustomSortingActive()) return sortedItems
-				const folderPath = folder.path
-				if (!(folderPath in plugin.settings.customOrder)) return sortedItems
-				const customOrder = plugin.settings.customOrder[folderPath].children
-				const inOrder = sortedItems.filter(item => customOrder.includes(item.file.path))
-				const notInOrder = sortedItems.filter(item => !customOrder.includes(item.file.path))
-				inOrder.sort((a, b) => customOrder.indexOf(a.file.path) - customOrder.indexOf(b.file.path))
-				return [...inOrder, ...notInOrder]
-			},
-			setSortOrder: original => function (this: FileExplorerView, sortOrder: FileExplorerViewSortOrder) {
-				original.call(this, sortOrder)
-				patcher.log.info(`Sort order changed to: '${sortOrder}'`)
-				const hadCustomSortingBeenActive = plugin.isCustomSortingActive()
-				plugin.settings.sortOrder = sortOrder
-				void plugin.saveSettings()
-				if (hadCustomSortingBeenActive && !plugin.isCustomSortingActive()) {
-					plugin.dndManager.disable()
-					plugin.getFileExplorerView().sort()
-				}
+				if (bypass) return sortedItems
+				const customSortOrder = plugin.settings.folderSortOrders[folder.path]
+				if (!customSortOrder) return sortedItems
+				patcher.log.info(`Applying custom sort '${customSortOrder}' to folder '${folder.path}'`)
+				return patcher.sortItems(sortedItems, customSortOrder)
 			},
 		})
 	}
 
-	patchSortOrderMenu() {
-		const plugin = this.plugin
-
-		this.menuUninstaller = around(Menu.prototype, {
-			showAtMouseEvent: original => function (this: Menu, ...args) {
-				const openMenuButton = args[0].target as HTMLElement
-				if (openMenuButton.getAttribute('aria-label') === i18next.t('plugins.file-explorer.action-change-sort')
-					&& openMenuButton.classList.contains('nav-action-button')
-				) {
-					const menu = this
-					if (plugin.isCustomSortingActive()) {
-						const checkedItem = menu.items.find((item): item is MenuItem => item instanceof MenuItem && item.checked === true)
-						if (checkedItem) checkedItem.setChecked(false)
-					}
-
-					const sortingMenuSection = CUSTOM_SORT_ORDER_ID
-					menu.addItem((item: MenuItem) => {
-						item.setTitle('Manual sorting')
-							.setIcon('pin')
-							.setChecked(plugin.isCustomSortingActive())
-							.setSection(sortingMenuSection)
-							.onClick(() => {
-								if (!plugin.isCustomSortingActive()) {
-									plugin.settings.sortOrder = CUSTOM_SORT_ORDER_ID
-									plugin.orderManager.reconcileOrder()
-									void plugin.saveSettings()
-									plugin.getFileExplorerView().sort()
-									void plugin.dndManager.enable()
-								}
-							})
-					})
-					menu.addItem((item: MenuItem) => {
-						item.setTitle('Reset order')
-							.setIcon('trash-2')
-							.setSection(sortingMenuSection)
-							.onClick(() => {
-								new ResetOrderModal(plugin.app, () => {
-									plugin.orderManager.resetOrder()
-									plugin.orderManager.reconcileOrder()
-									void plugin.saveSettings()
-									plugin.getFileExplorerView().sort()
-								}).open()
-							})
-					})
-					const menuItems = menu.items
-					const menuSeparator = menuItems.splice(8, 1)[0]
-					menuItems.splice(0, 0, menuSeparator)
+	private sortItems(items: FileTreeItem[], sortOrder: FileExplorerViewSortOrder): FileTreeItem[] {
+		return [...items].sort((a, b) => {
+			switch (sortOrder) {
+				case 'alphabetical':
+					return a.file.name.localeCompare(b.file.name)
+				case 'alphabeticalReverse':
+					return b.file.name.localeCompare(a.file.name)
+				case 'byModifiedTime': {
+					const aTime = a.file instanceof TFile ? a.file.stat.mtime : 0
+					const bTime = b.file instanceof TFile ? b.file.stat.mtime : 0
+					return bTime - aTime || a.file.name.localeCompare(b.file.name)
 				}
-				return original.apply(this, args)
-			},
+				case 'byModifiedTimeReverse': {
+					const aTime = a.file instanceof TFile ? a.file.stat.mtime : 0
+					const bTime = b.file instanceof TFile ? b.file.stat.mtime : 0
+					return aTime - bTime || a.file.name.localeCompare(b.file.name)
+				}
+				case 'byCreatedTime': {
+					const aTime = a.file instanceof TFile ? a.file.stat.ctime : 0
+					const bTime = b.file instanceof TFile ? b.file.stat.ctime : 0
+					return bTime - aTime || a.file.name.localeCompare(b.file.name)
+				}
+				case 'byCreatedTimeReverse': {
+					const aTime = a.file instanceof TFile ? a.file.stat.ctime : 0
+					const bTime = b.file instanceof TFile ? b.file.stat.ctime : 0
+					return aTime - bTime || a.file.name.localeCompare(b.file.name)
+				}
+				default:
+					return 0
+			}
 		})
 	}
 
@@ -102,12 +66,5 @@ export class Patcher {
 		this.explorerUninstaller()
 		this.explorerUninstaller = null
 		this.log.info('Explorer unpatched')
-	}
-
-	unpatchSortOrderMenu() {
-		if (!this.menuUninstaller) return
-		this.menuUninstaller()
-		this.menuUninstaller = null
-		this.log.info('Sort order menu unpatched')
 	}
 }

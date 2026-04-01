@@ -1,5 +1,4 @@
 import { TFolder } from 'obsidian'
-import { CUSTOM_SORT_ORDER_ID } from '@/constants'
 import type { FileTreeItem, FileExplorerViewSortOrder } from 'obsidian-typings'
 import type { i18n } from 'i18next'
 
@@ -7,22 +6,10 @@ declare global {
 	const i18next: i18n
 }
 
-export interface LegacyPluginSettings {
-	customOrder: Record<string, string[]>
-	sortOrder: string
-	debugMode: boolean
-}
-
 export interface PluginSettings {
-	customOrder: FileOrder
-	sortOrder: SortOrder
+	folderSortOrders: Record<string, FileExplorerViewSortOrder>
 	debugMode: boolean
 }
-
-export type FileOrder = Record<string, {
-	children: string[]
-	sortOrder: SortOrder
-}>
 
 declare module 'obsidian-typings' {
 	interface FileExplorerView {
@@ -34,8 +21,6 @@ declare module 'obsidian-typings' {
 		setCollapsed(collapsed: boolean, check: boolean): void
 	}
 }
-
-export type SortOrder = FileExplorerViewSortOrder | typeof CUSTOM_SORT_ORDER_ID
 
 export type LogLevel = 'debug' | 'silent'
 

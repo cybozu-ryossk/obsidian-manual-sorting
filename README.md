@@ -23,15 +23,15 @@
 
 ## 🔥 Features
 
-- **Enable manual sorting** via the `📌 Manual sorting` option
-- **Reset custom order** with the `🗑️ Reset order` button
-- **Seamlessly switch** between manual and built-in sorting modes
+- **Configure per-folder sort order** from the plugin settings screen
+- **Folders without a setting** use Obsidian's global sort order
+- **Seamlessly switch** between per-folder and global sort modes
 
 ## 🕹️ Usage
 
-1. Open the `⚙️ Change sort order` menu
-2. Select `📌 Manual sorting`
-3. Drag and drop items in the file explorer to reorder them
+1. Open `Settings` → `Manual Sorting`
+2. Under "Per-Folder Sort Orders", click `Add`
+3. Enter a folder path and choose the desired sort order
 
 ## 📥 Installation
 - **Via the Obsidian Plugins marketplace**: https://obsidian.md/plugins?id=manual-sorting
@@ -40,12 +40,15 @@
 
 ## 📋 Specifications
 
-- When Manual Sorting is active, items explicitly placed via drag-and-drop are sorted by their custom order.
-- Items **not** in the custom order (new files/folders) are displayed in Obsidian's standard sort order, appended after the manually sorted items.
-- New files and folders are **not** automatically added to the custom order; they appear via standard sort until manually placed by drag-and-drop.
-- The "New item placement" setting (Top/Bottom) is removed. Unsorted items always appear after manually sorted items, in standard sort order.
-- The settings tab displays all manually sorted items grouped by folder, so users can review which items have a custom order.
-- Each item in the list has a delete button to remove it from the custom order (reverting it to standard sort behavior). Removing all items in a folder removes the folder entry entirely.
+- Drag-and-drop sorting is removed. Sort order is configured exclusively from the plugin settings screen.
+- Users can assign a sort order to any folder individually (e.g. alphabetical, by modified time).
+- Folders with no configured sort order fall back to Obsidian's global sort order.
+- The "Change sort order" menu in the file explorer is unmodified; it still controls the global sort order.
+- The settings tab shows a list of all per-folder sort order configurations.
+- Each configured folder has a sort order dropdown and a delete button to revert to the global sort order.
+- A new configuration can be added by entering a folder path and selecting a sort order.
+- When a folder is renamed, its sort order configuration is updated automatically.
+- When a folder is deleted, its sort order configuration is removed automatically.
 
 ## 💖 Credits
 - **Inspiration**: [Obsidian Bartender](https://github.com/nothingislost/obsidian-bartender), [Custom File Explorer sorting](https://github.com/SebastianMC/obsidian-custom-sort)

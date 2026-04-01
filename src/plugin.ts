@@ -1,16 +1,14 @@
-import { Plugin, TAbstractFile } from 'obsidian'
+import { Plugin, TAbstractFile, TFolder } from 'obsidian'
 import { SettingsTab } from '@/components'
-import { OrderManager, Patcher, ExplorerManager, DndManager } from '@/managers'
-import { DEFAULT_SETTINGS, CUSTOM_SORT_ORDER_ID } from '@/constants'
+import { Patcher, ExplorerManager } from '@/managers'
+import { DEFAULT_SETTINGS } from '@/constants'
 import { Logger } from '@/utils'
 import type { FileExplorerView } from 'obsidian-typings'
-import type { PluginSettings, LegacyPluginSettings, SortOrder } from '@/types'
+import type { PluginSettings } from '@/types'
 
 export default class ManualSortingPlugin extends Plugin {
-	public orderManager = new OrderManager(this)
 	private patcher = new Patcher(this)
 	public explorerManager = new ExplorerManager(this)
-	public dndManager = new DndManager(this)
 	private log = new Logger('CORE', '#ff4828')
 	public settings!: PluginSettings
 
@@ -24,8 +22,6 @@ export default class ManualSortingPlugin extends Plugin {
 
 	onunload() {
 		this.patcher.unpatchExplorer()
-		this.patcher.unpatchSortOrderMenu()
-		this.dndManager.disable()
 		this.getFileExplorerView().sort()
 		this.log.info('Manual Sorting unloaded')
 	}
@@ -33,7 +29,6 @@ export default class ManualSortingPlugin extends Plugin {
 	async initialize() {
 		await this.explorerManager.waitForExplorerElement()
 		this.patcher.patchExplorer()
-		this.patcher.patchSortOrderMenu()
 		this.explorerManager.refreshExplorer()
 		this.explorerManager.refreshExplorerOnMount()
 		this.registerVaultHandlers()
@@ -41,32 +36,31 @@ export default class ManualSortingPlugin extends Plugin {
 
 	registerVaultHandlers() {
 		this.app.vault.on('rename', (item: TAbstractFile, oldPath: string) => {
-			const oldDir = oldPath.substring(0, oldPath.lastIndexOf('/')) || '/'
-			const newDir = item.path.substring(0, item.path.lastIndexOf('/')) || '/'
-			if (oldDir !== newDir) return
-			this.log.info(`Item renamed from '${oldPath}' to '${item.path}'`)
-			this.orderManager.rename(oldPath, item.path)
+			if (!(item instanceof TFolder)) return
+			const orders = this.settings.folderSortOrders
+			if (!(oldPath in orders)) return
+			this.log.info(`Folder renamed from '${oldPath}' to '${item.path}'`)
+			orders[item.path] = orders[oldPath]
+			delete orders[oldPath]
+			void this.saveSettings()
 		})
 
 		this.app.vault.on('delete', (item: TAbstractFile) => {
-			this.log.info(`Item deleted: '${item.path}'`)
-			this.orderManager.remove(item.path)
+			if (!(item instanceof TFolder)) return
+			const orders = this.settings.folderSortOrders
+			if (!(item.path in orders)) return
+			this.log.info(`Folder deleted: '${item.path}'`)
+			delete orders[item.path]
+			void this.saveSettings()
 		})
 	}
 
 	async loadSettings() {
-		const savedSettings = (await this.loadData() || {}) as Partial<PluginSettings | LegacyPluginSettings>
-		let settingsToLoad: PluginSettings
-		if (savedSettings.customOrder?.['/'] && Array.isArray(savedSettings.customOrder['/'])) {
-			this.log.info('Migrating settings to v4 format')
-			settingsToLoad = this.migrateLegacySettings(savedSettings as LegacyPluginSettings)
-		} else {
-			settingsToLoad = savedSettings as PluginSettings
-		}
+		const savedSettings = (await this.loadData() || {}) as Partial<PluginSettings>
 		this.settings = {
 			...DEFAULT_SETTINGS,
 			...Object.fromEntries((Object.keys(DEFAULT_SETTINGS) as (keyof PluginSettings)[])
-				.filter(k => k in settingsToLoad).map(k => [k, settingsToLoad[k]]),
+				.filter(k => k in savedSettings).map(k => [k, savedSettings[k]]),
 			),
 		}
 		this.log.info('Settings loaded:', this.settings)
@@ -82,15 +76,6 @@ export default class ManualSortingPlugin extends Plugin {
 		this.log.warn('Settings changed externally')
 		this.getFileExplorerView().sort()
 	}
-
-	migrateLegacySettings = (legacySettings: LegacyPluginSettings): PluginSettings => ({
-		...legacySettings,
-		customOrder: Object.fromEntries(Object.entries(legacySettings.customOrder).map(([folder, children]) => [folder, { children, sortOrder: 'custom' }])),
-		sortOrder: legacySettings.sortOrder === 'customOrder' ? CUSTOM_SORT_ORDER_ID : legacySettings.sortOrder as SortOrder,
-	})
-
-	isCustomSortingActive = () =>
-		this.settings.sortOrder === CUSTOM_SORT_ORDER_ID
 
 	getFileExplorerView = () =>
 		this.app.workspace.getLeavesOfType('file-explorer')[0].view as FileExplorerView

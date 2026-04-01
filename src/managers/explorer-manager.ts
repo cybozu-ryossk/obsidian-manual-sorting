@@ -16,9 +16,7 @@ export class ExplorerManager {
 
 	refreshExplorer() {
 		this.log.info('Refreshing Explorer after mount')
-		this.plugin.orderManager.reconcileOrder()
-		this.plugin.getFileExplorerView().setSortOrder(this.plugin.settings.sortOrder)
-		if (this.plugin.isCustomSortingActive()) void this.plugin.dndManager.enable()
+		this.plugin.getFileExplorerView().sort()
 	}
 
 	private observeExplorerMount(onMount: (el: HTMLElement) => void, disconnectOnMount = false, checkExisting = true, disableLogs = false) {
@@ -26,7 +24,6 @@ export class ExplorerManager {
 			const target = document.querySelector(FILE_EXPLORER_SELECTOR)
 			if (target instanceof HTMLElement) {
 				if (!disableLogs) this.log.info('Explorer already mounted', target)
-				console.log()
 				onMount(target)
 				return
 			}
