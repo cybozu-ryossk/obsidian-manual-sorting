@@ -42,6 +42,11 @@ export default class ManualSortingPlugin extends Plugin {
 			if (item instanceof TFolder) {
 				this.log.info(`Folder renamed from '${oldPath}' to '${item.path}'`)
 				this.updateOrderForFolderRename(oldPath, item.path)
+				this.settings.hiddenFolders = this.settings.hiddenFolders.map(p =>
+					p === oldPath ? item.path
+					: p.startsWith(oldPath + '/') ? item.path + p.slice(oldPath.length)
+					: p,
+				)
 			} else {
 				if (oldDir === newDir && this.settings.customOrder[oldDir]) {
 					this.log.info(`File renamed from '${oldPath}' to '${item.path}'`)
@@ -72,6 +77,9 @@ export default class ManualSortingPlugin extends Plugin {
 					if (key === item.path || key.startsWith(item.path + '/'))
 						delete orders[key]
 				}
+				this.settings.hiddenFolders = this.settings.hiddenFolders.filter(p =>
+					p !== item.path && !p.startsWith(item.path + '/'),
+				)
 			}
 			void this.saveSettings()
 		})

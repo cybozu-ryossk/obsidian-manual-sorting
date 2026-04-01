@@ -8,6 +8,7 @@ declare global {
 
 export interface PluginSettings {
 	customOrder: Record<string, string[]>
+	hiddenFolders: string[]
 	debugMode: boolean
 }
 

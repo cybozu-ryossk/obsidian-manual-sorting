@@ -4,6 +4,7 @@ import type ManualSortingPlugin from '@/plugin'
 
 export class SettingsTab extends PluginSettingTab {
 	private selectedFolderPath = '/'
+	private folderToHide = ''
 
 	constructor(app: App, public plugin: ManualSortingPlugin) {
 		super(app, plugin)
@@ -51,6 +52,7 @@ export class SettingsTab extends PluginSettingTab {
 			})
 
 		this.renderFolderPanel()
+		this.renderHiddenFoldersPanel(allFolderPaths)
 	}
 
 	private renderFolderPanel(): void {
@@ -168,5 +170,67 @@ export class SettingsTab extends PluginSettingTab {
 					)
 			}
 		}
+	}
+
+	private renderHiddenFoldersPanel(allFolderPaths: string[]): void {
+		const hiddenFolders = this.plugin.settings.hiddenFolders
+
+		this.containerEl.createEl('h3', { text: 'Hidden Folders' })
+		this.containerEl.createEl('p', {
+			text: 'Folders in this list will not be displayed in the file explorer.',
+			cls: 'setting-item-description',
+		})
+
+		if (hiddenFolders.length === 0) {
+			this.containerEl.createEl('p', {
+				text: 'No folders are hidden.',
+				cls: 'setting-item-description',
+			})
+		}
+
+		for (const path of hiddenFolders) {
+			new Setting(this.containerEl)
+				.setName(path)
+				.addButton(btn => btn
+					.setButtonText('Unhide')
+					.onClick(async () => {
+						this.plugin.settings.hiddenFolders = this.plugin.settings.hiddenFolders.filter(p => p !== path)
+						await this.plugin.saveSettings()
+						this.plugin.getFileExplorerView().sort()
+						this.display()
+					}),
+				)
+		}
+
+		const availableFolders = allFolderPaths.filter(p => p !== '/' && !hiddenFolders.includes(p))
+		if (availableFolders.length === 0) return
+
+		if (!availableFolders.includes(this.folderToHide)) {
+			this.folderToHide = availableFolders[0]
+		}
+
+		new Setting(this.containerEl)
+			.setName('Hide folder')
+			.addDropdown(drop => {
+				for (const path of availableFolders) {
+					drop.addOption(path, path)
+				}
+				drop.setValue(this.folderToHide)
+				drop.onChange(value => {
+					this.folderToHide = value
+				})
+			})
+			.addButton(btn => btn
+				.setButtonText('Hide')
+				.onClick(async () => {
+					if (!this.folderToHide) return
+					if (!this.plugin.settings.hiddenFolders.includes(this.folderToHide)) {
+						this.plugin.settings.hiddenFolders.push(this.folderToHide)
+						await this.plugin.saveSettings()
+						this.plugin.getFileExplorerView().sort()
+						this.display()
+					}
+				}),
+			)
 	}
 }

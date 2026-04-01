@@ -20,10 +20,14 @@ export class Patcher {
 				const sortedItems = original.call(this, folder)
 				if (bypass) return sortedItems
 				const folderPath = folder.path
+				const hiddenFolders = plugin.settings.hiddenFolders
+				const visibleItems = hiddenFolders.length > 0
+					? sortedItems.filter(item => !hiddenFolders.includes(item.file.path))
+					: sortedItems
 				const customOrder = plugin.settings.customOrder[folderPath]
-				if (!customOrder || customOrder.length === 0) return sortedItems
-				const inOrder = sortedItems.filter(item => customOrder.includes(item.file.path))
-				const notInOrder = sortedItems.filter(item => !customOrder.includes(item.file.path))
+				if (!customOrder || customOrder.length === 0) return visibleItems
+				const inOrder = visibleItems.filter(item => customOrder.includes(item.file.path))
+				const notInOrder = visibleItems.filter(item => !customOrder.includes(item.file.path))
 				inOrder.sort((a, b) => customOrder.indexOf(a.file.path) - customOrder.indexOf(b.file.path))
 				patcher.log.info(`Applied custom order to folder '${folderPath}'`)
 				return [...inOrder, ...notInOrder]

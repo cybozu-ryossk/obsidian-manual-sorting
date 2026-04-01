@@ -51,6 +51,10 @@
 - The "Change sort order" menu in the file explorer is unmodified; it still controls the global sort order for unconfigured folders.
 - When a file or folder is renamed within the same parent, its entry in the custom order is updated automatically.
 - When a file or folder is deleted, its entry is removed from the custom order automatically.
+- A folder can be marked as "hidden" from the plugin settings screen. Hidden folders are not displayed in the file explorer.
+- The settings tab includes a "Hidden Folders" section where folders can be added to or removed from the hidden list.
+- The hidden folders list shows the path of each hidden folder with a button to unhide it.
+- There is an input or picker to add a new folder to the hidden list.
 
 ## 💖 Credits
 - **Inspiration**: [Obsidian Bartender](https://github.com/nothingislost/obsidian-bartender), [Custom File Explorer sorting](https://github.com/SebastianMC/obsidian-custom-sort)
